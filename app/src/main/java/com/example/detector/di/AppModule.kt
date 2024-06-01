@@ -34,7 +34,7 @@ abstract class AppModule {
         @Singleton
         fun provideRetrofit(): Retrofit {
             return Retrofit.Builder()
-                .baseUrl("https://your.api.base.url") // Replace with your actual base URL
+                .baseUrl("https://api.gemini.com") // Replace with gemini's actual base URL or figure out how to use the api keys to make these requests
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
         }
