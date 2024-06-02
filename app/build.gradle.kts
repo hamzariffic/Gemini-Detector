@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     id("dagger.hilt.android.plugin")
     id("kotlin-kapt")
-
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -21,6 +21,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Correct way to define buildConfigField in Kotlin DSL
+        buildConfigField("String", "API_KEY", "\"${project.findProperty("apiKey")}\"")
     }
 
     buildTypes {
@@ -53,7 +56,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -63,10 +65,10 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-//    More icons from MaterialLibrary
+    // More icons from MaterialLibrary
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
 
-//    Retrofit
+    // Retrofit
     implementation(libs.converter.simplexml)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
@@ -74,6 +76,9 @@ dependencies {
     // Dagger Hilt
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler) // Use kapt for Hilt compiler
+
+    // Add the dependency for the Google AI client SDK for Android
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 
     implementation(libs.androidx.hilt.work) // For using Hilt with WorkManager
     kapt(libs.androidx.hilt.compiler)
@@ -89,7 +94,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
-
 
 kapt {
     correctErrorTypes = true
