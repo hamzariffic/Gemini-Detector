@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 class GeminiRepositoryImpl @Inject constructor(
     retrofit: Retrofit
-) : GeminiUseCase {
+) : GeminiRepository, GeminiUseCase {
 
     private interface GeminiApi {
         @POST("/gemini/v1/generate")
