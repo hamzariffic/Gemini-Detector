@@ -1,5 +1,6 @@
 package com.example.detector.di
 
+import com.example.detector.BuildConfig
 import com.example.detector.data.GeminiRepository
 import com.example.detector.data.GeminiRepositoryImpl
 import com.example.detector.domain.usecase.GeminiUseCase
@@ -33,7 +34,7 @@ abstract class AppModule {
         @Singleton
         fun provideGenerativeModel(): GenerativeModel {
             // Access the API key as a Build Configuration variable
-            val apiKey = BuildConfig.apiKey
+            val apiKey = BuildConfig.API_KEY
             return GenerativeModel(
                 modelName = "gemini-1.5-flash",
                 apiKey = apiKey
