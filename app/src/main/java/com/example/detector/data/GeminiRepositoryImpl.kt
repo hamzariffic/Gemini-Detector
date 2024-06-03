@@ -2,28 +2,28 @@ package com.example.detector.data
 
 import com.example.detector.domain.model.GeminiResponse
 import com.example.detector.domain.usecase.GeminiUseCase
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.Part
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.http.Body
-import retrofit2.http.POST
 import javax.inject.Inject
 
 class GeminiRepositoryImpl @Inject constructor(
-    retrofit: Retrofit
+    private val generativeModel: GenerativeModel
 ) : GeminiRepository, GeminiUseCase {
 
-    private interface GeminiApi {
-        @POST("/gemini/v1/generate")
-        suspend fun generateText(@Body prompt: String): GeminiResponse
-    }
-
-    private val api: GeminiApi = retrofit.create(GeminiApi::class.java)
-
-    override suspend fun invoke(prompt: String): GeminiResponse {
+    override suspend fun invoke(prompt: String, additionalInputs: List<Part>? = null): GeminiResponse {
         return withContext(Dispatchers.IO) {
             try {
-                api.generateText(prompt)
+                // Prepare the request parts, including the prompt and any additional inputs
+                val requestParts = mutableListOf<Part>(Part.fromText(prompt))
+                additionalInputs?.let { requestParts.addAll(it) }
+
+                // Generate content using the multimodal generative model
+                val result = generativeModel.generateContent(requestParts)
+
+                // Assuming 'generateContent' returns a response with text
+                GeminiResponse(content = result.text)
             } catch (e: Exception) {
                 GeminiResponse(content = "Error: ${e.message}")
             }
