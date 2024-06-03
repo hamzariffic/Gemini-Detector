@@ -1,9 +1,8 @@
 plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
-    id("dagger.hilt.android.plugin")
+    id("com.android.application")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
@@ -33,6 +32,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Disable PNG crunching for release builds
+            isCrunchPngs = false
         }
     }
     compileOptions {
@@ -44,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -75,10 +77,11 @@ dependencies {
 
     // Dagger Hilt
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler) // Use kapt for Hilt compiler
+    kapt(libs.hilt.compiler) // Use KAPT for Hilt compiler
 
     // Add the dependency for the Google AI client SDK for Android
     implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+
 
     implementation(libs.androidx.hilt.work) // For using Hilt with WorkManager
     kapt(libs.androidx.hilt.compiler)
@@ -93,8 +96,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
-
-kapt {
-    correctErrorTypes = true
 }
