@@ -68,7 +68,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     // More icons from MaterialLibrary
-    implementation("androidx.compose.material:material-icons-extended:1.6.7")
+    implementation(libs.androidx.material.icons.extended)
 
     // Retrofit
     implementation(libs.converter.simplexml)
@@ -79,8 +79,14 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler) // Use KAPT for Hilt compiler
 
-    // Add the dependency for the Google AI client SDK for Android
-    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
+    // Dependency for the Google AI client SDK for Android
+    implementation(libs.generativeai)
+
+    //okhttp3
+    implementation(libs.okhttp)
+
+//    Coil library for images
+    implementation(libs.coil.compose)
 
 
     implementation(libs.androidx.hilt.work) // For using Hilt with WorkManager
