@@ -29,16 +29,15 @@ abstract class AppModule {
     ): GeminiUseCase
 
     companion object {
-
         @Provides
         @Singleton
         fun provideGenerativeModel(): GenerativeModel {
-            // Access the API key as a Build Configuration variable
             val apiKey = BuildConfig.API_KEY
-            return GenerativeModel(
-                modelName = "gemini-1.5-flash",
-                apiKey = apiKey
-            )
+            // Return an instance of GenerativeModel, make sure this is the correct way to initialize it
+            return GenerativeModel.Builder()
+                .apiKey(apiKey)
+                .modelName("gemini-1.5-flash")
+                .build()
         }
     }
 }
