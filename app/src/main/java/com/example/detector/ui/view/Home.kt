@@ -1,17 +1,29 @@
 package com.example.detector.ui.view
 
+import android.app.Application
+import android.graphics.Bitmap
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Upload
@@ -33,16 +45,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberImagePainter
+import com.example.detector.domain.model.GeminiResponse
 import com.example.detector.ui.viewModel.HomeScreenViewModel
 
 @Composable
 fun MainScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
     val searchText by viewModel.searchText.collectAsState()
     val response by viewModel.response.collectAsState()
+
+    // State for image input
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            selectedImageUri = uri
+            uri?.let {
+                selectedBitmap = MediaStore.Images.Media.getBitmap(viewModel.getApplication<Application>().contentResolver, it)
+            }
+        }
+    )
 
     Scaffold(
         topBar = {
@@ -85,20 +115,50 @@ fun MainScreen(viewModel: HomeScreenViewModel = hiltViewModel()) {
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.interactWithAI() },
-                modifier = Modifier.padding(16.dp)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Filled.Upload, contentDescription = "Upload")
+                FloatingActionButton(
+                    onClick = { viewModel.interactWithAI(textInput = searchText, imageInput = listOfNotNull(selectedBitmap), voiceInput = null) },
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(Icons.Filled.Send, contentDescription = "Send Text")
+                }
+                FloatingActionButton(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(Icons.Filled.Upload, contentDescription = "Upload Image")
+                }
+                FloatingActionButton(
+                    onClick = { /*TODO*/ },
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Icon(Icons.Filled.Mic, contentDescription = "Record Audio")
+                }
             }
         },
         floatingActionButtonPosition = FabPosition.End
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ChatInputField(searchText, viewModel::onSearchTextChange, viewModel::interactWithAI)
+                ChatInputField(searchText, viewModel::onSearchTextChange) {
+                    viewModel.interactWithAI(
+                        textInput = searchText,
+                        imageInput = listOfNotNull(selectedBitmap),
+                        voiceInput = null
+                    )
+                }
                 response?.let {
-                    Text(it.content, modifier = Modifier.padding(top = 16.dp))
+                    GeminiResultScreen(it)
+                }
+                selectedImageUri?.let { uri ->
+                    Image(
+                        painter = rememberImagePainter(uri),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.size(128.dp).padding(4.dp)
+                    )
                 }
             }
         }
@@ -131,6 +191,60 @@ fun ChatInputField(
         )
         IconButton(onClick = onSendClick) {
             Icon(Icons.Filled.Send, contentDescription = "Send")
+        }
+    }
+}
+
+@Composable
+fun GeminiResultScreen(response: GeminiResponse) {
+    Column {
+        Text(text = response.content)
+
+        if (response.images.isNotEmpty()) {
+            LazyRow {
+                items(response.images) { imageUrl ->
+                    Image(
+                        painter = rememberImagePainter(imageUrl),
+                        contentDescription = "Image from Gemini",
+                        modifier = Modifier
+                            .size(128.dp)
+                            .padding(4.dp)
+                    )
+                }
+            }
+        }
+
+        if (response.videoUrls.isNotEmpty()) {
+            LazyRow {
+                items(response.videoUrls) { videoUrl ->
+                    Text(
+                        text = "Video: $videoUrl",
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
+
+        if (response.audioUrls.isNotEmpty()) {
+            LazyRow {
+                items(response.audioUrls) { audioUrl ->
+                    Text(
+                        text = "Audio: $audioUrl",
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
+        }
+
+        if (response.pdfUrls.isNotEmpty()) {
+            LazyRow {
+                items(response.pdfUrls) { pdfUrl ->
+                    Text(
+                        text = "PDF: $pdfUrl",
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
+            }
         }
     }
 }
