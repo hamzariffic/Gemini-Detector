@@ -9,10 +9,8 @@ import com.example.detector.BuildConfig
 import com.example.detector.domain.model.GeminiResponse
 import com.example.detector.domain.usecase.GeminiUseCase
 import com.google.ai.client.generativeai.type.BlockThreshold
-import com.google.ai.client.generativeai.type.GenerationConfig
 import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
-import com.google.ai.client.generativeai.type.Schema
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -110,66 +108,73 @@ class HomeScreenViewModel @Inject constructor(private val geminiUseCase: GeminiU
 }
 
 
-class GenerationConfigBuilder {
-    private var temperature: Float? = null
-    private var topK: Int? = null
-    private var topP: Float? = null
-    private var candidateCount: Int? = null
-    private var maxOutputTokens: Int? = null
-    private var stopSequences: List<String>? = null
-    private var responseMimeType: String? = null
-    private var responseSchema: Schema<*>? = null
+@HiltViewModel
+class HomeScreenViewModel @Inject constructor(private val geminiUseCase: GeminiUseCase) : ViewModel() {
 
-    fun temperature(temperature: Float): GenerationConfigBuilder {
-        this.temperature = temperature
-        return this
+    private val _searchText = MutableStateFlow("")
+    val searchText: StateFlow<String> = _searchText
+
+    private val _response = MutableStateFlow<GeminiResponse?>(null)
+    val response: StateFlow<GeminiResponse?> = _response
+
+    private val voiceInputEnabled: MutableState<Boolean> = mutableStateOf(false)
+    private val textToSpeechEnabled: MutableState<Boolean> = mutableStateOf(false)
+
+    fun onSearchTextChange(newText: String) {
+        _searchText.value = newText
     }
 
-    fun topK(topK: Int): GenerationConfigBuilder {
-        this.topK = topK
-        return this
+    fun interactWithAI(textInput: String?, imageInput: List<Bitmap>?, voiceInput: String?) {
+        viewModelScope.launch {
+            val prompt = buildPrompt(textInput, imageInput, voiceInput)
+            geminiUseCase.generateContentStream(prompt).collect { chunk ->
+                _response.value = chunk
+            }
+        }
     }
 
-    fun topP(topP: Float): GenerationConfigBuilder {
-        this.topP = topP
-        return this
+    private fun buildPrompt(textInput: String?, imageInput: List<Bitmap>?, voiceInput: String?): String {
+        val basePrompt = "I am a medical AI assistant. Please provide information about your symptoms or medical condition."
+        val textPrompt = textInput ?: ""
+        val voicePrompt = voiceInput ?: ""
+        val imagePrompt = imageInput?.joinToString(separator = " ") { "Image included" } ?: ""
+
+        return "$basePrompt $textPrompt $voicePrompt $imagePrompt"
     }
 
-    fun candidateCount(candidateCount: Int): GenerationConfigBuilder {
-        this.candidateCount = candidateCount
-        return this
+    fun onVoiceInputEnabledChange(isEnabled: Boolean) {
+        voiceInputEnabled.value = isEnabled
     }
 
-    fun maxOutputTokens(maxOutputTokens: Int): GenerationConfigBuilder {
-        this.maxOutputTokens = maxOutputTokens
-        return this
+    fun onTextToSpeechEnabledChange(isEnabled: Boolean) {
+        textToSpeechEnabled.value = isEnabled
     }
 
-    fun stopSequences(stopSequences: List<String>): GenerationConfigBuilder {
-        this.stopSequences = stopSequences
-        return this
-    }
+    init {
+        viewModelScope.launch {
+            val generationConfig = GenerationConfigBuilder()
+                .temperature(0.7f)
+                .topK(20)
+                .topP(0.9f)
+                .maxOutputTokens(200)
+                .stopSequences(listOf("Please consult a medical professional.", "Thank you", "That was helpful."))
+                .build()
 
-    fun responseMimeType(responseMimeType: String): GenerationConfigBuilder {
-        this.responseMimeType = responseMimeType
-        return this
-    }
-
-    fun responseSchema(responseSchema: Schema<*>): GenerationConfigBuilder {
-        this.responseSchema = responseSchema
-        return this
-    }
-
-    fun build(): GenerationConfig {
-        return GenerationConfig(
-            temperature,
-            topK,
-            topP,
-            candidateCount,
-            maxOutputTokens,
-            stopSequences,
-            responseMimeType,
-            responseSchema
-        )
+            geminiUseCase.initializeModel(
+                modelName = "gemini-1.5-flash",
+                apiKey = BuildConfig.API_KEY,
+                generationConfig = generationConfig,
+                safetySettings = listOf(
+                    SafetySetting.newBuilder()
+                        .setHarmCategory(HarmCategory.HARASSMENT)
+                        .setBlockThreshold(BlockThreshold.ONLY_HIGH)
+                        .build(),
+                    SafetySetting.newBuilder()
+                        .setHarmCategory(HarmCategory.HATE_SPEECH)
+                        .setBlockThreshold(BlockThreshold.MEDIUM_AND_ABOVE)
+                        .build()
+                )
+            )
+        }
     }
 }
